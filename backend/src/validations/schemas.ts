@@ -98,3 +98,19 @@ export const updateFloorSchema = z.object({
   })
 });
 
+export const updateSeatSchema = z.object({
+  body: z.object({
+    seatNumber: z.string().min(1).optional(),
+    floorId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Floor ID').optional(),
+    roomName: z.string().min(1).optional(),
+    seatType: z.enum(['desk', 'pc', 'collaborative']).optional(),
+    hasPowerOutlet: z.boolean().optional(),
+    isNearWindow: z.boolean().optional(),
+    coordinates: z.object({
+      x: z.number().int().nonnegative(),
+      y: z.number().int().nonnegative()
+    }).optional(),
+    deviceId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Device ID').optional()
+  })
+});
+

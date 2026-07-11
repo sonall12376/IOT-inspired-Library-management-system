@@ -18,9 +18,11 @@ const io = new SocketIOServer(server, {
     methods: ['GET', 'POST', 'PUT', 'DELETE']
   }
 });
+app.set('io', io);
 
 import authRouter from './routes/auth.routes';
 import floorRouter from './routes/floor.routes';
+import seatRouter from './routes/seat.routes';
 
 // Configure Middlewares
 app.use(cors());
@@ -40,6 +42,7 @@ app.get('/api', (_req, res) => {
 // Mount Routes
 app.use('/api/auth', authRouter);
 app.use('/api/floors', floorRouter);
+app.use('/api/seats', seatRouter);
 
 // Apply centralized error handling middleware as the last middleware
 app.use(errorHandler);
