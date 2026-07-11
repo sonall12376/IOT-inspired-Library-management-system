@@ -25,6 +25,7 @@ const io = new socket_io_1.Server(server, {
     }
 });
 exports.io = io;
+const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 // Configure Middlewares
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
@@ -37,6 +38,8 @@ app.get('/healthz', (_req, res) => {
 app.get('/api', (_req, res) => {
     res.status(200).json({ message: 'SmartLibrary AI Backend System REST API v1.0.0' });
 });
+// Mount Routes
+app.use('/api/auth', auth_routes_1.default);
 // Apply centralized error handling middleware as the last middleware
 app.use(error_1.errorHandler);
 const PORT = process.env.PORT || 5000;

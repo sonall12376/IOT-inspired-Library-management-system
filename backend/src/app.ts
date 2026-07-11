@@ -19,6 +19,8 @@ const io = new SocketIOServer(server, {
   }
 });
 
+import authRouter from './routes/auth.routes';
+
 // Configure Middlewares
 app.use(cors());
 app.use(express.json());
@@ -33,6 +35,9 @@ app.get('/healthz', (_req, res) => {
 app.get('/api', (_req, res) => {
   res.status(200).json({ message: 'SmartLibrary AI Backend System REST API v1.0.0' });
 });
+
+// Mount Routes
+app.use('/api/auth', authRouter);
 
 // Apply centralized error handling middleware as the last middleware
 app.use(errorHandler);

@@ -64,3 +64,25 @@ export const registerDeviceSchema = z.object({
     deviceName: z.string({ message: 'Device name is required' }).min(1)
   })
 });
+
+export const refreshTokenSchema = z.object({
+  body: z.object({
+    refreshToken: z.string({ message: 'Refresh token is required' }).min(1, 'Refresh token cannot be empty')
+  })
+});
+
+export const forgotPasswordSchema = z.object({
+  body: z.object({
+    email: z.string({ message: 'Email is required' }).email('Invalid email address')
+  })
+});
+
+export const resetPasswordSchema = z.object({
+  body: z.object({
+    password: z.string({ message: 'Password is required' }).min(6, 'Password must be at least 6 characters')
+  }),
+  params: z.object({
+    token: z.string({ message: 'Reset token is required' }).min(1, 'Reset token cannot be empty')
+  })
+});
+

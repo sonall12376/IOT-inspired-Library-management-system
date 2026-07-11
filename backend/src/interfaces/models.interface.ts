@@ -6,6 +6,8 @@ export interface IUser extends Document {
   password?: string;
   role: 'student' | 'librarian' | 'admin';
   dailyBookingCount: number;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(password: string): Promise<boolean>;
@@ -69,3 +71,11 @@ export interface IAuditLog extends Document {
   ipAddress?: string;
   timestamp: Date;
 }
+
+export interface IRefreshToken extends Document {
+  token: string;
+  userId: Types.ObjectId;
+  expiresAt: Date;
+  createdAt: Date;
+}
+

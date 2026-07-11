@@ -30,6 +30,12 @@ const UserSchema = new Schema<IUser>(
     dailyBookingCount: {
       type: Number,
       default: 0
+    },
+    resetPasswordToken: {
+      type: String
+    },
+    resetPasswordExpires: {
+      type: Date
     }
   },
   {
