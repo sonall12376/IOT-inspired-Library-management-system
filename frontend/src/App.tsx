@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './hooks/useAuth';
@@ -7,8 +7,6 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import { motion } from 'framer-motion';
-import { Library, Wifi, Cpu, Layers, LogOut, User as UserIcon } from 'lucide-react';
 
 // Protected Route Guard Component
 const ProtectedRoute: React.FC<{ children: React.ReactElement; allowedRoles?: string[] }> = ({ children, allowedRoles }) => {
@@ -36,13 +34,14 @@ const ProtectedRoute: React.FC<{ children: React.ReactElement; allowedRoles?: st
 
 import StudentDashboard from './pages/StudentDashboard';
 import LibrarianDashboard from './pages/LibrarianDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 
 // Main Dashboard Switcher based on User Role
 const Dashboard = () => {
   const { user } = useAuth();
 
   if (user?.role === 'admin') {
-    return <LibrarianDashboard />;
+    return <AdminDashboard />;
   } else if (user?.role === 'librarian') {
     return <LibrarianDashboard />;
   } else {

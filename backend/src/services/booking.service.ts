@@ -89,9 +89,9 @@ export class BookingService {
 
     if (targetUser.role === 'student') {
       const startOfDay = new Date(start);
-      startOfDay.setHours(0, 0, 0, 0);
+      startOfDay.setUTCHours(0, 0, 0, 0);
       const endOfDay = new Date(start);
-      endOfDay.setHours(23, 59, 59, 999);
+      endOfDay.setUTCHours(23, 59, 59, 999);
 
       const activeBookingsCount = await Booking.countDocuments({
         studentId,

@@ -27,6 +27,7 @@ import authRouter from './routes/auth.routes';
 import floorRouter from './routes/floor.routes';
 import seatRouter from './routes/seat.routes';
 import bookingRouter from './routes/booking.routes';
+import analyticsRouter from './routes/analytics.routes';
 
 // Configure Middlewares
 app.use(cors());
@@ -48,6 +49,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/floors', floorRouter);
 app.use('/api/seats', seatRouter);
 app.use('/api/bookings', bookingRouter);
+app.use('/api/analytics', analyticsRouter);
 
 // Apply centralized error handling middleware as the last middleware
 app.use(errorHandler);

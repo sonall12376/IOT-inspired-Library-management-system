@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import socket from '../services/socket';
+import AnalyticsDashboard from './AnalyticsDashboard';
 import {
   Clock,
   CheckCircle,
@@ -16,7 +17,9 @@ import {
   RefreshCw,
   Users,
   Radio,
-  Battery
+  Battery,
+  TrendingUp,
+  Sparkles
 } from 'lucide-react';
 
 interface Floor {
@@ -76,6 +79,7 @@ export const LibrarianDashboard: React.FC = () => {
   const [isReserving, setIsReserving] = useState<boolean>(false);
   const [overrideStatus, setOverrideStatus] = useState<Seat['status']>('maintenance');
   const [overrideReason, setOverrideReason] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'map' | 'analytics'>('map');
 
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
@@ -321,6 +325,28 @@ export const LibrarianDashboard: React.FC = () => {
             </div>
           </div>
           <div className="flex gap-4 items-center font-medium">
+            {/* Tab navigation */}
+            <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1 text-xs">
+              <button
+                onClick={() => setActiveTab('map')}
+                className={`px-3 py-1.5 rounded-md font-medium cursor-pointer transition-all flex items-center gap-1.5 ${
+                  activeTab === 'map' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Live Map
+              </button>
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className={`px-3 py-1.5 rounded-md font-medium cursor-pointer transition-all flex items-center gap-1.5 ${
+                  activeTab === 'analytics' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <TrendingUp className="w-3.5 h-3.5" />
+                Analytics
+              </button>
+            </div>
+
             <div className="flex items-center gap-3 bg-slate-900/60 border border-slate-800 px-3 py-1.5 rounded-lg text-xs">
               <User className="w-4 h-4 text-indigo-400" />
               <div className="text-left">
@@ -619,123 +645,252 @@ export const LibrarianDashboard: React.FC = () => {
           )}
         </AnimatePresence>
 
-        {/* Bottom Panel: Bookings Logs & Device Monitoring */}
-        <div className="grid lg:grid-cols-3 gap-8 text-left">
-          
-          {/* IoT Devices Health Check Dashboard (1 Column) */}
-          <div className="lg:col-span-1 border border-slate-800 bg-slate-900/20 p-6 rounded-2xl">
-            <h3 className="text-base font-bold font-outfit text-white mb-6 flex items-center gap-2">
-              <Radio className="w-5 h-5 text-indigo-400 animate-pulse" />
-              Sensor Health
-            </h3>
+        <AnimatePresence mode="wait">
+          {activeTab === 'map' ? (
+            <motion.div
+              key="map"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="space-y-8"
+            >
+              {/* Real-time Dashboard Analytics Stats */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/30 text-left">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Active Check-ins</p>
+                  <h3 className="text-3xl font-bold font-outfit text-white mt-2">{activeBookingsCount}</h3>
+                </div>
+                <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/30 text-left">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Pending Check-ins</p>
+                  <h3 className="text-3xl font-bold font-outfit text-white mt-2">{pendingBookingsCount}</h3>
+                </div>
+                <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/30 text-left">
+                  <p className="text-[10px] text-rose-500 uppercase tracking-wider font-semibold">Out for Maintenance</p>
+                  <h3 className="text-3xl font-bold font-outfit text-rose-400 mt-2">{maintenanceSeatsCount}</h3>
+                </div>
+                <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/30 text-left">
+                  <p className="text-[10px] text-amber-500 uppercase tracking-wider font-semibold">Offline Sensors</p>
+                  <h3 className="text-3xl font-bold font-outfit text-amber-400 mt-2">{offlineDevicesCount}</h3>
+                </div>
+              </div>
 
-            {devices.length > 0 ? (
-              <div className="space-y-4">
-                {devices.map((device) => (
-                  <div key={device._id} className="p-3.5 rounded-lg bg-slate-950/40 border border-slate-850/60 flex justify-between items-center text-xs">
-                    <div>
-                      <p className="font-bold text-slate-200 font-mono">{device.deviceName}</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">{device.macAddress}</p>
-                      <p className="text-[9px] text-slate-450 mt-1 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        Heartbeat: {new Date(device.lastHeartbeat).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                      </p>
-                    </div>
-
-                    <div className="text-right space-y-1.5">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9px] font-bold uppercase ${
-                        device.status === 'online'
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          : 'bg-rose-500/10 text-rose-400 border border-rose-500/20 animate-pulse'
-                      }`}>
-                        {device.status}
-                      </span>
-                      <div className="flex items-center gap-2 text-slate-400 text-[10px] justify-end">
-                        <Battery className={`w-3.5 h-3.5 ${
-                          device.batteryPercentage && device.batteryPercentage < 20 ? 'text-rose-400 animate-bounce' : 'text-slate-400'
-                        }`} />
-                        <span>{device.batteryPercentage ? `${device.batteryPercentage}%` : 'N/A'}</span>
-                      </div>
-                      <p className="text-[10px] text-slate-500">RSSI: {device.rssi} dBm</p>
+              {/* Grid Layout: Visual Map & Controls */}
+              <div className="grid lg:grid-cols-3 gap-8">
+                
+                {/* Side Floor Selection Controls */}
+                <div className="lg:col-span-1 space-y-6 text-left">
+                  <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/40 backdrop-blur-md">
+                    <h3 className="text-base font-bold font-outfit text-white mb-4 flex items-center gap-2">
+                      <Layers className="w-5 h-5 text-indigo-400" />
+                      Floor Selection
+                    </h3>
+                    <div className="space-y-2">
+                      {floors.map((floor) => (
+                        <button
+                          key={floor._id}
+                          onClick={() => setSelectedFloor(floor)}
+                          className={`w-full text-left px-4 py-3 rounded-lg border text-sm font-medium transition-all cursor-pointer flex justify-between items-center ${
+                            selectedFloor?._id === floor._id
+                              ? 'border-indigo-500 bg-indigo-500/10 text-white'
+                              : 'border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <span>{floor.name}</span>
+                          <span className="text-[10px] bg-slate-850 px-2 py-0.5 rounded border border-slate-800">
+                            Level {floor.floorNumber}
+                          </span>
+                        </button>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="py-8 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-xl">
-                <span>No active IoT sensors registered yet.</span>
-              </div>
-            )}
-          </div>
 
-          {/* Active Bookings Log (2 Columns) */}
-          <div className="lg:col-span-2 border border-slate-800 bg-slate-900/20 p-6 rounded-2xl">
-            <h3 className="text-base font-bold font-outfit text-white mb-6 flex items-center gap-2">
-              <Users className="w-5 h-5 text-indigo-400" />
-              Active Reservation Log
-            </h3>
+                  {/* Map Legend */}
+                  <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/20">
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Legend Map</h4>
+                    <div className="space-y-3.5 text-xs text-slate-400">
+                      <div className="flex items-center gap-3">
+                        <span className="w-3.5 h-3.5 rounded border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold text-[8px] bg-emerald-500/5">S</span>
+                        <span>Vacant & Available</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="w-3.5 h-3.5 rounded border border-rose-500/30 text-rose-400 flex items-center justify-center font-bold text-[8px] bg-rose-500/5">S</span>
+                        <span>Occupied / Checked-In</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="w-3.5 h-3.5 rounded border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold text-[8px] bg-amber-500/5">S</span>
+                        <span>Reserved Slot Pending</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="w-3.5 h-3.5 rounded border border-slate-800 text-slate-500 flex items-center justify-center font-bold text-[8px] bg-slate-900/60">S</span>
+                        <span>Locked Maintenance / Offline</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-            {bookings.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-slate-400">
-                  <thead>
-                    <tr className="border-b border-slate-850 text-slate-500 text-xs uppercase font-semibold">
-                      <th className="py-3 px-4 text-left">Student</th>
-                      <th className="py-3 px-4 text-left">Seat</th>
-                      <th className="py-3 px-4 text-left">Time Slot</th>
-                      <th className="py-3 px-4 text-left">Status</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-850/50">
-                    {bookings.map((booking) => (
-                      <tr key={booking._id} className="hover:bg-slate-900/30 transition-all">
-                        <td className="py-3 px-4">
-                          <p className="font-semibold text-slate-200 leading-none">{booking.studentId?.name || 'N/A'}</p>
-                          <p className="text-[10px] text-slate-500 mt-1">{booking.studentId?.email}</p>
-                        </td>
-                        <td className="py-3 px-4 font-bold text-white">
-                          {typeof booking.seatId === 'object' ? booking.seatId.seatNumber : 'N/A'}
-                        </td>
-                        <td className="py-3 px-4 text-xs font-mono">
-                          {new Date(booking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(booking.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </td>
-                        <td className="py-3 px-4 text-xs">
-                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
-                            booking.status === 'completed'
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                              : booking.status === 'active'
-                              ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
-                              : booking.status === 'pending'
-                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                              : 'bg-slate-800 text-slate-400 border-slate-700'
-                          }`}>
-                            {booking.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          {(booking.status === 'pending' || booking.status === 'active') && (
-                            <button
-                              disabled={actionLoading}
-                              onClick={() => handleCancelBooking(booking._id)}
-                              className="px-2.5 py-1 rounded bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 text-xs transition-all cursor-pointer disabled:opacity-50"
-                            >
-                              Release
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {/* Visual Grid Map */}
+                <div className="lg:col-span-2 border border-slate-800 bg-slate-900/10 p-6 rounded-2xl min-h-[400px] flex flex-col justify-between shadow-inner">
+                  <div>
+                    <div className="flex justify-between items-center mb-6 border-b border-slate-800/60 pb-4">
+                      <div className="text-left">
+                        <h3 className="text-lg font-bold font-outfit text-white leading-none">
+                          {selectedFloor?.name || 'Layout Map'}
+                        </h3>
+                        <p className="text-[10px] text-slate-500 mt-1">Select any seat node to override status or book on behalf</p>
+                      </div>
+                      <button
+                        onClick={() => selectedFloor && fetchSeats(selectedFloor._id)}
+                        className="p-2 text-slate-400 hover:text-indigo-400 bg-slate-900/50 hover:bg-slate-900 rounded-lg border border-slate-800 transition-all cursor-pointer"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {loading ? (
+                      <div className="h-64 flex flex-col items-center justify-center text-slate-500 text-xs">
+                        <div className="w-6 h-6 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-3" />
+                        <span>Loading seat configurations...</span>
+                      </div>
+                    ) : seats.length > 0 ? (
+                      renderSeatGrid()
+                    ) : (
+                      <div className="h-64 flex flex-col items-center justify-center text-slate-500 text-xs text-center border-2 border-dashed border-slate-800 rounded-xl p-8">
+                        <span>No seats mapped to this floor level.</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            ) : (
-              <div className="py-8 text-center text-xs text-slate-500">
-                <span>No active seat reservation records.</span>
+
+              {/* Bottom Panel: Bookings Logs & Device Monitoring */}
+              <div className="grid lg:grid-cols-3 gap-8 text-left">
+                
+                {/* IoT Devices Health Check Dashboard (1 Column) */}
+                <div className="lg:col-span-1 border border-slate-800 bg-slate-900/20 p-6 rounded-2xl">
+                  <h3 className="text-base font-bold font-outfit text-white mb-6 flex items-center gap-2">
+                    <Radio className="w-5 h-5 text-indigo-400 animate-pulse" />
+                    Sensor Health
+                  </h3>
+
+                  {devices.length > 0 ? (
+                    <div className="space-y-4">
+                      {devices.map((device) => (
+                        <div key={device._id} className="p-3.5 rounded-lg bg-slate-950/40 border border-slate-850/60 flex justify-between items-center text-xs">
+                          <div>
+                            <p className="font-bold text-slate-200 font-mono">{device.deviceName}</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5">{device.macAddress}</p>
+                            <p className="text-[9px] text-slate-455 mt-1 flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5" />
+                              Heartbeat: {new Date(device.lastHeartbeat).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            </p>
+                          </div>
+
+                          <div className="text-right space-y-1.5">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9px] font-bold uppercase ${
+                              device.status === 'online'
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                : 'bg-rose-500/10 text-rose-455 border border-rose-500/20 animate-pulse'
+                            }`}>
+                              {device.status}
+                            </span>
+                            <div className="flex items-center gap-2 text-slate-400 text-[10px] justify-end">
+                              <Battery className={`w-3.5 h-3.5 ${
+                                device.batteryPercentage && device.batteryPercentage < 20 ? 'text-rose-400 animate-bounce' : 'text-slate-400'
+                              }`} />
+                              <span>{device.batteryPercentage ? `${device.batteryPercentage}%` : 'N/A'}</span>
+                            </div>
+                            <p className="text-[10px] text-slate-500">RSSI: {device.rssi} dBm</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                      <span>No active IoT sensors registered yet.</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Active Bookings Log (2 Columns) */}
+                <div className="lg:col-span-2 border border-slate-800 bg-slate-900/20 p-6 rounded-2xl">
+                  <h3 className="text-base font-bold font-outfit text-white mb-6 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-indigo-400" />
+                    Active Reservation Log
+                  </h3>
+
+                  {bookings.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-slate-400">
+                        <thead>
+                          <tr className="border-b border-slate-850 text-slate-500 text-xs uppercase font-semibold">
+                            <th className="py-3 px-4 text-left">Student</th>
+                            <th className="py-3 px-4 text-left">Seat</th>
+                            <th className="py-3 px-4 text-left">Time Slot</th>
+                            <th className="py-3 px-4 text-left">Status</th>
+                            <th className="py-3 px-4 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-850/50">
+                          {bookings.map((booking) => (
+                            <tr key={booking._id} className="hover:bg-slate-900/30 transition-all">
+                              <td className="py-3 px-4">
+                                <p className="font-semibold text-slate-200 leading-none">{booking.studentId?.name || 'N/A'}</p>
+                                <p className="text-[10px] text-slate-500 mt-1">{booking.studentId?.email}</p>
+                              </td>
+                              <td className="py-3 px-4 font-bold text-white">
+                                {typeof booking.seatId === 'object' ? booking.seatId.seatNumber : 'N/A'}
+                              </td>
+                              <td className="py-3 px-4 text-xs font-mono">
+                                {new Date(booking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(booking.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </td>
+                              <td className="py-3 px-4 text-xs">
+                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                                  booking.status === 'completed'
+                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                    : booking.status === 'active'
+                                    ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                                    : booking.status === 'pending'
+                                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                    : 'bg-slate-800 text-slate-400 border-slate-700'
+                                }`}>
+                                  {booking.status}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                {(booking.status === 'pending' || booking.status === 'active') && (
+                                  <button
+                                    disabled={actionLoading}
+                                    onClick={() => handleCancelBooking(booking._id)}
+                                    className="px-2.5 py-1 rounded bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-450 text-xs transition-all cursor-pointer disabled:opacity-50"
+                                  >
+                                    Release
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center text-xs text-slate-500">
+                      <span>No active seat reservation records.</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
-        </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="analytics"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+            >
+              <AnalyticsDashboard />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Footer */}
