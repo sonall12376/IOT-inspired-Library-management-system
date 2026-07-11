@@ -35,17 +35,16 @@ const ProtectedRoute: React.FC<{ children: React.ReactElement; allowedRoles?: st
 };
 
 import StudentDashboard from './pages/StudentDashboard';
+import LibrarianDashboard from './pages/LibrarianDashboard';
 
 // Main Dashboard Switcher based on User Role
 const Dashboard = () => {
   const { user } = useAuth();
 
   if (user?.role === 'admin') {
-    // Placeholder rendering StudentDashboard until AdminDashboard is built
-    return <StudentDashboard />;
+    return <LibrarianDashboard />;
   } else if (user?.role === 'librarian') {
-    // Placeholder rendering StudentDashboard until LibrarianDashboard is built
-    return <StudentDashboard />;
+    return <LibrarianDashboard />;
   } else {
     return <StudentDashboard />;
   }
