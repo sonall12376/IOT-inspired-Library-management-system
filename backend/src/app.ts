@@ -9,6 +9,8 @@ import { Server as SocketIOServer } from 'socket.io';
 import { logger } from './config/logger';
 import { connectDB } from './config/db';
 import { errorHandler } from './middlewares/error';
+import { MQTTService } from './services/mqtt.service';
+import { WatchdogService } from './services/watchdog.service';
 
 const app = express();
 const server = http.createServer(app);
@@ -61,6 +63,12 @@ const startServer = async () => {
         logger.debug(`Client disconnected from WebSocket: ${socket.id}`);
       });
     });
+
+    // 2.5 Initialize IoT telemetry and Watchdog sweeps when running app server (exclude in Jest tests)
+    if (process.env.NODE_ENV !== 'test') {
+      MQTTService.initialize(io);
+      WatchdogService.initialize(io);
+    }
 
     // 3. Start Listening
     server.listen(PORT, () => {
