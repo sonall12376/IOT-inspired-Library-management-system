@@ -20,6 +20,7 @@ const io = new SocketIOServer(server, {
 });
 
 import authRouter from './routes/auth.routes';
+import floorRouter from './routes/floor.routes';
 
 // Configure Middlewares
 app.use(cors());
@@ -38,6 +39,7 @@ app.get('/api', (_req, res) => {
 
 // Mount Routes
 app.use('/api/auth', authRouter);
+app.use('/api/floors', floorRouter);
 
 // Apply centralized error handling middleware as the last middleware
 app.use(errorHandler);

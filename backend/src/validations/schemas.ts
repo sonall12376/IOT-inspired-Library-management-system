@@ -86,3 +86,15 @@ export const resetPasswordSchema = z.object({
   })
 });
 
+export const updateFloorSchema = z.object({
+  body: z.object({
+    floorNumber: z.number().int().optional(),
+    name: z.string().min(1, 'Floor name cannot be empty').optional(),
+    gridDimensions: z.object({
+      rows: z.number().int().positive(),
+      columns: z.number().int().positive()
+    }).optional(),
+    svgLayoutPath: z.string().optional()
+  })
+});
+
