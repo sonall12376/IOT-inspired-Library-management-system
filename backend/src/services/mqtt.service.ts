@@ -2,6 +2,7 @@ import mqtt, { MqttClient } from 'mqtt';
 import { Seat } from '../models/Seat';
 import { Device } from '../models/Device';
 import { Floor } from '../models/Floor';
+import { Booking } from '../models/Booking';
 import { logger } from '../config/logger';
 import { Server as SocketIOServer } from 'socket.io';
 
@@ -92,7 +93,38 @@ export class MQTTService {
       return;
     }
 
-    const targetStatus = occupied ? 'occupied' : 'vacant';
+    const now = new Date();
+    let targetStatus: 'vacant' | 'occupied' | 'reserved' | 'maintenance' | 'offline' = occupied ? 'occupied' : 'vacant';
+
+    if (occupied) {
+      // presence detected: check if there's an active booking that is currently pending check-in
+      const pendingBooking = await Booking.findOne({
+        seatId: seat._id,
+        status: 'pending',
+        startTime: { $lte: now },
+        endTime: { $gte: now }
+      });
+
+      if (pendingBooking) {
+        pendingBooking.status = 'active';
+        pendingBooking.checkInTime = now;
+        await pendingBooking.save();
+        logger.info(`[MQTT Ingestion] Auto checked-in booking ${pendingBooking._id} for seat ${seat.seatNumber} due to presence detection.`);
+      }
+    } else {
+      // absence detected: check if there is an active booking for this seat
+      const activeBooking = await Booking.findOne({
+        seatId: seat._id,
+        status: 'active',
+        startTime: { $lte: now },
+        endTime: { $gte: now }
+      });
+
+      if (activeBooking) {
+        // Seat is booked but user is temporarily away -> status remains 'reserved' rather than resetting to vacant
+        targetStatus = 'reserved';
+      }
+    }
     
     // Prevent redundant database writes and Socket.IO updates
     if (seat.status === targetStatus) {

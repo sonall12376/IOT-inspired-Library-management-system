@@ -11,6 +11,7 @@ import { connectDB } from './config/db';
 import { errorHandler } from './middlewares/error';
 import { MQTTService } from './services/mqtt.service';
 import { WatchdogService } from './services/watchdog.service';
+import { BookingSchedulerService } from './services/booking-scheduler.service';
 
 const app = express();
 const server = http.createServer(app);
@@ -25,6 +26,7 @@ app.set('io', io);
 import authRouter from './routes/auth.routes';
 import floorRouter from './routes/floor.routes';
 import seatRouter from './routes/seat.routes';
+import bookingRouter from './routes/booking.routes';
 
 // Configure Middlewares
 app.use(cors());
@@ -45,6 +47,7 @@ app.get('/api', (_req, res) => {
 app.use('/api/auth', authRouter);
 app.use('/api/floors', floorRouter);
 app.use('/api/seats', seatRouter);
+app.use('/api/bookings', bookingRouter);
 
 // Apply centralized error handling middleware as the last middleware
 app.use(errorHandler);
@@ -68,12 +71,15 @@ const startServer = async () => {
     if (process.env.NODE_ENV !== 'test') {
       MQTTService.initialize(io);
       WatchdogService.initialize(io);
+      BookingSchedulerService.initialize(io);
     }
 
     // 3. Start Listening
-    server.listen(PORT, () => {
-      logger.info(`SmartLibrary AI server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-    });
+    if (process.env.NODE_ENV !== 'test') {
+      server.listen(PORT, () => {
+        logger.info(`SmartLibrary AI server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+      });
+    }
   } catch (error) {
     logger.error('Failed to start server:', error);
     process.exit(1);
