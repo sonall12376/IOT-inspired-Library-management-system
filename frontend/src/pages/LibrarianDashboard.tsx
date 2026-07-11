@@ -6,23 +6,17 @@ import socket from '../services/socket';
 import {
   Clock,
   CheckCircle,
-  XCircle,
   AlertCircle,
   Layers,
   MapPin,
-  Calendar,
   Zap,
   User,
   LogOut,
   Library,
   RefreshCw,
-  Info,
-  Sliders,
   Users,
-  AlertTriangle,
   Radio,
-  Battery,
-  ShieldAlert
+  Battery
 } from 'lucide-react';
 
 interface Floor {

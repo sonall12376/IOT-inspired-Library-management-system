@@ -5,8 +5,6 @@ import api from '../services/api';
 import socket from '../services/socket';
 import {
   Clock,
-  CheckCircle,
-  XCircle,
   AlertCircle,
   Layers,
   MapPin,
