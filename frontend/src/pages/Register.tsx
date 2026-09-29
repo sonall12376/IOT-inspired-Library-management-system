@@ -38,7 +38,7 @@ export const Register: React.FC = () => {
       setTimeout(() => {
         navigate('/login');
       }, 2000);
-    } catch (err) {
+    } catch {
       // Error is set in AuthContext and can be displayed
     } finally {
       setLoading(false);

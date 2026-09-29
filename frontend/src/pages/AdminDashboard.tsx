@@ -4,19 +4,18 @@ import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import socket from '../services/socket';
 import AnalyticsDashboard from './AnalyticsDashboard';
+import { NotificationCenter } from '../components/NotificationCenter';
 import {
   Clock,
   CheckCircle,
   AlertCircle,
   Layers,
   MapPin,
-  Calendar,
   Zap,
   User,
   LogOut,
   Library,
   RefreshCw,
-  Info,
   Users,
   Radio,
   Battery,
@@ -24,7 +23,6 @@ import {
   Plus,
   Trash2,
   Edit,
-  Sliders,
   Sparkles,
   TrendingUp
 } from 'lucide-react';
@@ -64,7 +62,7 @@ interface Device {
   _id: string;
   macAddress: string;
   deviceName: string;
-  status: 'online' | 'offline';
+  status: 'online' | 'offline' | 'maintenance';
   rssi: number;
   batteryPercentage?: number;
   firmwareVersion: string;
@@ -78,9 +76,20 @@ export const AdminDashboard: React.FC = () => {
   const [seats, setSeats] = useState<Seat[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   
   // Navigation tabs
-  const [activeTab, setActiveTab] = useState<'live' | 'logs' | 'sensors' | 'config' | 'analytics'>('live');
+  const [activeTab, setActiveTab] = useState<'live' | 'logs' | 'sensors' | 'config' | 'analytics' | 'audit-logs'>('live');
+
+  // Device Forms
+  const [showDeviceModal, setShowDeviceModal] = useState<boolean>(false);
+  const [editingDevice, setEditingDevice] = useState<Device | null>(null);
+  const [deviceMac, setDeviceMac] = useState<string>('');
+  const [deviceNameState, setDeviceNameState] = useState<string>('');
+  const [deviceStatus, setDeviceStatus] = useState<'online' | 'offline' | 'maintenance'>('offline');
+  const [deviceRssi, setDeviceRssi] = useState<number>(-70);
+  const [deviceBattery, setDeviceBattery] = useState<number>(100);
+  const [deviceFirmware, setDeviceFirmware] = useState<string>('1.0.0');
 
   // Modals / Overrides / Allocations
   const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
@@ -194,10 +203,78 @@ export const AdminDashboard: React.FC = () => {
 
   const fetchDevices = async () => {
     try {
-      const deviceRes = await api.get('/devices').catch(() => ({ data: { devices: [] } }));
+      const deviceRes = await api.get('/devices');
       setDevices(deviceRes.data.devices || []);
-    } catch (err) {
-      console.error('Devices routing bypass.', err);
+    } catch (err: any) {
+      setErrorMessage(err.response?.data?.message || 'Failed to load IoT devices.');
+    }
+  };
+
+  const fetchAuditLogs = async () => {
+    try {
+      setLoading(true);
+      const logRes = await api.get('/audit-logs');
+      setAuditLogs(logRes.data.logs || []);
+    } catch (err: any) {
+      setErrorMessage(err.response?.data?.message || 'Failed to load system audit logs.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveDevice = async () => {
+    try {
+      setActionLoading(true);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+
+      const payload = {
+        macAddress: deviceMac,
+        deviceName: deviceNameState,
+        status: deviceStatus,
+        rssi: deviceRssi,
+        batteryPercentage: deviceBattery,
+        firmwareVersion: deviceFirmware
+      };
+
+      if (editingDevice) {
+        await api.put(`/devices/${editingDevice._id}`, payload);
+        setSuccessMessage(`Device ${deviceNameState} updated successfully.`);
+      } else {
+        await api.post('/devices', payload);
+        setSuccessMessage(`Device ${deviceNameState} registered successfully.`);
+      }
+
+      setShowDeviceModal(false);
+      setEditingDevice(null);
+      setDeviceMac('');
+      setDeviceNameState('');
+      setDeviceStatus('offline');
+      setDeviceRssi(-70);
+      setDeviceBattery(100);
+      setDeviceFirmware('1.0.0');
+      await fetchDevices();
+    } catch (err: any) {
+      setErrorMessage(err.response?.data?.message || 'Failed to save device details.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteDevice = async (id: string) => {
+    if (!window.confirm('WARNING: Deleting this device will clear its association on all seat nodes. Proceed?')) return;
+    try {
+      setActionLoading(true);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+
+      await api.delete(`/devices/${id}`);
+      setSuccessMessage('Device deleted and unbound successfully.');
+      await fetchDevices();
+    } catch (err: any) {
+      setErrorMessage(err.response?.data?.message || 'Failed to delete device.');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -507,8 +584,21 @@ export const AdminDashboard: React.FC = () => {
                 <TrendingUp className="w-3.5 h-3.5" />
                 Analytics
               </button>
+              <button
+                onClick={() => {
+                  setActiveTab('audit-logs');
+                  fetchAuditLogs();
+                }}
+                className={`px-3 py-1.5 rounded-md font-medium cursor-pointer transition-all flex items-center gap-1.5 ${
+                  activeTab === 'audit-logs' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                Audit Logs
+              </button>
             </div>
 
+            <NotificationCenter />
             <div className="flex items-center gap-3 bg-slate-900/60 border border-slate-800 px-3 py-1.5 rounded-lg text-xs">
               <User className="w-4 h-4 text-indigo-400" />
               <div className="text-left">
@@ -739,10 +829,28 @@ export const AdminDashboard: React.FC = () => {
               exit={{ opacity: 0, y: 10 }}
               className="border border-slate-800 bg-slate-900/20 p-6 rounded-2xl text-left"
             >
-              <h3 className="text-base font-bold font-outfit text-white mb-6 flex items-center gap-2">
-                <Radio className="w-5 h-5 text-indigo-400" />
-                IoT Sensors & Device Monitoring
-              </h3>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-base font-bold font-outfit text-white flex items-center gap-2">
+                  <Radio className="w-5 h-5 text-indigo-400" />
+                  IoT Sensors & Device Monitoring
+                </h3>
+                <button
+                  onClick={() => {
+                    setEditingDevice(null);
+                    setDeviceMac('');
+                    setDeviceNameState('');
+                    setDeviceStatus('offline');
+                    setDeviceRssi(-70);
+                    setDeviceBattery(100);
+                    setDeviceFirmware('1.0.0');
+                    setShowDeviceModal(true);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all"
+                >
+                  <Plus className="w-4.5 h-4.5" />
+                  Register Device
+                </button>
+              </div>
 
               {devices.length > 0 ? (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -757,19 +865,46 @@ export const AdminDashboard: React.FC = () => {
                         </p>
                       </div>
 
-                      <div className="text-right space-y-1.5">
+                      <div className="text-right space-y-1.5 flex flex-col items-end">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
                           device.status === 'online'
                             ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : 'bg-rose-500/10 text-rose-455 border border-rose-500/20 animate-pulse'
+                            : device.status === 'offline'
+                            ? 'bg-rose-500/10 text-rose-450 border border-rose-500/20 animate-pulse'
+                            : 'bg-slate-800 text-slate-400 border border-slate-700'
                         }`}>
                           {device.status}
                         </span>
                         <div className="flex items-center gap-1.5 text-slate-400 text-[10px] justify-end">
                           <Battery className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{device.batteryPercentage ? `${device.batteryPercentage}%` : 'N/A'}</span>
+                          <span>{device.batteryPercentage !== undefined ? `${device.batteryPercentage}%` : 'N/A'}</span>
                         </div>
                         <p className="text-[10px] text-slate-500">{device.rssi} dBm</p>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => {
+                              setEditingDevice(device);
+                              setDeviceMac(device.macAddress);
+                              setDeviceNameState(device.deviceName);
+                              setDeviceStatus(device.status);
+                              setDeviceRssi(device.rssi);
+                              setDeviceBattery(device.batteryPercentage || 100);
+                              setDeviceFirmware(device.firmwareVersion);
+                              setShowDeviceModal(true);
+                            }}
+                            className="p-1 rounded text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 cursor-pointer transition-all"
+                            title="Edit Device"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDevice(device._id)}
+                            className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer transition-all"
+                            title="Delete Device"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -931,6 +1066,79 @@ export const AdminDashboard: React.FC = () => {
               exit={{ opacity: 0, y: 10 }}
             >
               <AnalyticsDashboard />
+            </motion.div>
+          )}
+          {activeTab === 'audit-logs' && (
+            <motion.div
+              key="audit-logs"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="border border-slate-800 bg-slate-900/20 p-6 rounded-2xl text-left"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-base font-bold font-outfit text-white flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-indigo-400" />
+                  System Configuration Audit Trail
+                </h3>
+                <button
+                  onClick={fetchAuditLogs}
+                  className="p-2 text-slate-400 hover:text-indigo-400 bg-slate-900/50 hover:bg-slate-900 rounded-lg border border-slate-800 transition-all cursor-pointer"
+                  title="Refresh Audit Logs"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
+
+              {auditLogs.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-slate-400 font-medium">
+                    <thead>
+                      <tr className="border-b border-slate-850 text-slate-500 text-xs uppercase font-semibold">
+                        <th className="py-3 px-4 text-left">Action</th>
+                        <th className="py-3 px-4 text-left">Operator</th>
+                        <th className="py-3 px-4 text-left">Details</th>
+                        <th className="py-3 px-4 text-left">IP Address</th>
+                        <th className="py-3 px-4 text-right">Timestamp</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-850/50">
+                      {auditLogs.map((log) => (
+                        <tr key={log._id} className="hover:bg-slate-900/30 transition-all">
+                          <td className="py-3 px-4">
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                              log.action.includes('CREATE')
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                : log.action.includes('UPDATE') || log.action.includes('OVERRIDE')
+                                ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                                : 'bg-rose-500/10 text-rose-450 border-rose-500/20'
+                            }`}>
+                              {log.action}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <p className="font-semibold text-slate-200 leading-none">{log.userId?.name || 'System / IoT'}</p>
+                            <p className="text-[10px] text-slate-500 mt-1 capitalize">{log.userId?.role || 'Service'}</p>
+                          </td>
+                          <td className="py-3 px-4 text-slate-300 text-xs max-w-xs break-words">
+                            {log.details}
+                          </td>
+                          <td className="py-3 px-4 text-xs font-mono text-slate-500">
+                            {log.ipAddress || '127.0.0.1'}
+                          </td>
+                          <td className="py-3 px-4 text-right text-xs font-mono text-slate-500">
+                            {new Date(log.timestamp).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="py-8 text-center text-xs text-slate-500">
+                  <span>No audit trails recorded.</span>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -1300,6 +1508,121 @@ export const AdminDashboard: React.FC = () => {
                     <button
                       disabled={actionLoading}
                       onClick={() => setShowSeatModal(false)}
+                      className="px-4 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-sm transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Modal: Device Node CRUD */}
+        <AnimatePresence>
+          {showDeviceModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-6"
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 15 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 15 }}
+                className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl relative text-left"
+              >
+                <h4 className="text-xl font-bold font-outfit text-white mb-6">
+                  {editingDevice ? `Edit Device ${editingDevice.macAddress}` : 'Register IoT Device'}
+                </h4>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">MAC Address</label>
+                    <input
+                      type="text"
+                      value={deviceMac}
+                      disabled={!!editingDevice}
+                      onChange={(e) => setDeviceMac(e.target.value)}
+                      placeholder="24:0A:C4:8B:58:FC"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none disabled:opacity-50 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">Device Display Name</label>
+                    <input
+                      type="text"
+                      value={deviceNameState}
+                      onChange={(e) => setDeviceNameState(e.target.value)}
+                      placeholder="e.g. Sensor Room C"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-400 mb-2">Status</label>
+                      <select
+                        value={deviceStatus}
+                        onChange={(e) => setDeviceStatus(e.target.value as any)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none"
+                      >
+                        <option value="online">Online</option>
+                        <option value="offline">Offline</option>
+                        <option value="maintenance">Maintenance</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-400 mb-2">Firmware Version</label>
+                      <input
+                        type="text"
+                        value={deviceFirmware}
+                        onChange={(e) => setDeviceFirmware(e.target.value)}
+                        placeholder="1.0.0"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-400 mb-2">RSSI (Signal Strength dBm)</label>
+                      <input
+                        type="number"
+                        value={deviceRssi}
+                        onChange={(e) => setDeviceRssi(parseInt(e.target.value))}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-400 mb-2">Battery Percentage (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={deviceBattery}
+                        onChange={(e) => setDeviceBattery(parseInt(e.target.value))}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-6">
+                    <button
+                      disabled={actionLoading}
+                      onClick={handleSaveDevice}
+                      className="flex-1 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all cursor-pointer shadow-md disabled:opacity-50"
+                    >
+                      Save Configuration
+                    </button>
+                    <button
+                      disabled={actionLoading}
+                      onClick={() => setShowDeviceModal(false)}
                       className="px-4 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-sm transition-all cursor-pointer disabled:opacity-50"
                     >
                       Cancel

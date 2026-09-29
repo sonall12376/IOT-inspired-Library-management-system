@@ -1,15 +1,14 @@
-FROM node:20-alpine AS builder
+# Build stage
+FROM maven:3.8.5-openjdk-17 AS builder
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
+COPY pom.xml .
+RUN mvn dependency:go-offline
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-FROM node:20-alpine
+# Run stage
+FROM openjdk:17-jdk-slim
 WORKDIR /app
-ENV NODE_ENV=production
-COPY package*.json ./
-RUN npm ci --only=production
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/target/smartlibrary-1.0.0.jar app.jar
 EXPOSE 5000
-CMD ["node", "dist/app.js"]
+ENTRYPOINT ["java", "-jar", "app.jar"]

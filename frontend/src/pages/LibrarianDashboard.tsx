@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import socket from '../services/socket';
 import AnalyticsDashboard from './AnalyticsDashboard';
+import { NotificationCenter } from '../components/NotificationCenter';
 import {
   Clock,
   CheckCircle,
@@ -57,7 +58,7 @@ interface Device {
   _id: string;
   macAddress: string;
   deviceName: string;
-  status: 'online' | 'offline';
+  status: 'online' | 'offline' | 'maintenance';
   rssi: number;
   batteryPercentage?: number;
   firmwareVersion: string;
@@ -347,6 +348,7 @@ export const LibrarianDashboard: React.FC = () => {
               </button>
             </div>
 
+            <NotificationCenter />
             <div className="flex items-center gap-3 bg-slate-900/60 border border-slate-800 px-3 py-1.5 rounded-lg text-xs">
               <User className="w-4 h-4 text-indigo-400" />
               <div className="text-left">

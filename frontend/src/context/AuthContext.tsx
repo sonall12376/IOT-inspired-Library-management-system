@@ -24,6 +24,7 @@ interface AuthContextType {
   clearError: () => void;
 }
 
+// eslint-disable-next-line react/only-export-components
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {

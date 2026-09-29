@@ -27,7 +27,7 @@ export const Login: React.FC = () => {
     try {
       await login(email, password);
       navigate('/');
-    } catch (err) {
+    } catch {
       // Error is set in AuthContext and can be displayed
     } finally {
       setLoading(false);

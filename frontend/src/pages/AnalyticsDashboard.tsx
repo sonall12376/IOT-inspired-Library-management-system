@@ -4,14 +4,11 @@ import {
   Download,
   Clock,
   TrendingUp,
-  FileSpreadsheet,
   AlertCircle,
   RefreshCw,
   Info,
   Calendar,
   Layers,
-  MapPin,
-  CheckCircle,
   XCircle,
   AlertTriangle
 } from 'lucide-react';
@@ -102,6 +99,7 @@ export const AnalyticsDashboard: React.FC = () => {
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
+      console.error('Failed to export booking log:', err);
       setErrorMessage('Report download failed. Check permissions.');
     } finally {
       setExportLoading(false);
@@ -299,7 +297,9 @@ export const AnalyticsDashboard: React.FC = () => {
               <div className="space-y-1">
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-400">Completed Check-ins</span>
-                  <span className="text-slate-200 font-mono">{bookingStats.statusStats.completed}</span>
+                  <span className="text-slate-200 font-mono">
+                    {bookingStats.statusStats.completed} ({((bookingStats.statusStats.completed / (bookingStats.totalBookings || 1)) * 100).toFixed(1)}%)
+                  </span>
                 </div>
                 <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden">
                   <div className="bg-emerald-500 h-full" style={{ width: `${(bookingStats.statusStats.completed / (bookingStats.totalBookings || 1)) * 100}%` }} />
@@ -309,7 +309,9 @@ export const AnalyticsDashboard: React.FC = () => {
               <div className="space-y-1">
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-400">Cancelled Bookings</span>
-                  <span className="text-slate-200 font-mono">{bookingStats.statusStats.cancelled}</span>
+                  <span className="text-slate-200 font-mono">
+                    {bookingStats.statusStats.cancelled} ({cancellationRate}%)
+                  </span>
                 </div>
                 <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden">
                   <div className="bg-rose-500 h-full" style={{ width: `${(bookingStats.statusStats.cancelled / (bookingStats.totalBookings || 1)) * 100}%` }} />
@@ -319,7 +321,9 @@ export const AnalyticsDashboard: React.FC = () => {
               <div className="space-y-1">
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-400">No-show Expirations</span>
-                  <span className="text-slate-200 font-mono">{bookingStats.statusStats['no-show']}</span>
+                  <span className="text-slate-200 font-mono">
+                    {bookingStats.statusStats['no-show']} ({noShowRate}%)
+                  </span>
                 </div>
                 <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden">
                   <div className="bg-amber-500 h-full" style={{ width: `${(bookingStats.statusStats['no-show'] / (bookingStats.totalBookings || 1)) * 100}%` }} />
@@ -329,7 +333,9 @@ export const AnalyticsDashboard: React.FC = () => {
               <div className="space-y-1">
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-400">Active Bookings Currently</span>
-                  <span className="text-slate-200 font-mono">{bookingStats.statusStats.active}</span>
+                  <span className="text-slate-200 font-mono">
+                    {bookingStats.statusStats.active} ({((bookingStats.statusStats.active / (bookingStats.totalBookings || 1)) * 100).toFixed(1)}%)
+                  </span>
                 </div>
                 <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden">
                   <div className="bg-indigo-500 h-full" style={{ width: `${(bookingStats.statusStats.active / (bookingStats.totalBookings || 1)) * 100}%` }} />

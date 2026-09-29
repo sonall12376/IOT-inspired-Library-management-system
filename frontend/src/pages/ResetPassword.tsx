@@ -48,7 +48,7 @@ export const ResetPassword: React.FC = () => {
       setTimeout(() => {
         navigate('/login');
       }, 2000);
-    } catch (err) {
+    } catch {
       // Handled by AuthContext
     } finally {
       setLoading(false);

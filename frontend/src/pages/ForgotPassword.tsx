@@ -32,7 +32,7 @@ export const ForgotPassword: React.FC = () => {
       if (resetToken) {
         setDevResetToken(resetToken);
       }
-    } catch (err) {
+    } catch {
       // Handled by AuthContext
     } finally {
       setLoading(false);

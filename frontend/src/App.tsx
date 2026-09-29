@@ -35,6 +35,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactElement; allowedRoles?: st
 import StudentDashboard from './pages/StudentDashboard';
 import LibrarianDashboard from './pages/LibrarianDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import SensorSimulator from './pages/SensorSimulator';
+import AnalyticsView from './pages/AnalyticsView';
 
 // Main Dashboard Switcher based on User Role
 const Dashboard = () => {
@@ -66,6 +68,24 @@ function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/simulator" 
+            element={
+              <ProtectedRoute>
+                <SensorSimulator />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/analytics" 
+            element={
+              <ProtectedRoute>
+                <AnalyticsView />
               </ProtectedRoute>
             } 
           />
